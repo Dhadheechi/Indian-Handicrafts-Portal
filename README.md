@@ -1,4 +1,5 @@
-# Indian Handicrafts Portal
+# Indian Handicrafts Portal NLP
+
 
 A modern web application showcasing and exploring traditional Indian handicrafts. Built with Next.js and React.
 
