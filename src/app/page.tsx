@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { crafts, languageLabels } from "@/data/crafts";
+import { useState, useEffect } from "react";
+import { languageLabels } from "@/data/crafts";
+import { Craft } from "@/lib/types";
 import TopNav from "@/components/ui/top-nav";
 import Hero from "@/components/ui/hero";
 import StateMap from "@/components/ui/state-map";
@@ -19,7 +20,25 @@ export default function HomePage() {
   const [selectedTechnique, setSelectedTechnique] = useState("All");
   const [selectedCraftId, setSelectedCraftId] = useState(1);
 
-  const selectedCraft = crafts.find((c) => c.id === selectedCraftId) || crafts[0];
+  const [crafts, setCrafts] = useState<Craft[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/crafts')
+      .then(res => res.json())
+      .then(data => {
+        setCrafts(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch crafts:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const selectedCraft = crafts.length > 0
+    ? crafts.find((c) => c.id === selectedCraftId) || crafts[0]
+    : null;
 
   const navigate = (next: string) => setPage(next);
   const openCraft = (id: number) => {
@@ -33,11 +52,18 @@ export default function HomePage() {
 
       <Hero language={language} query={query} setQuery={setQuery} navigate={navigate} />
 
-      {page === "home" && (
+      {loading ? (
+        <div className="flex items-center justify-center p-20 text-xl text-slate-500">
+          Loading amazing crafts...
+        </div>
+      ) : (
         <>
-          <StateMap navigate={navigate} setSelectedState={setSelectedState} />
-          <CraftListing
-            query={query}
+          {page === "home" && (
+            <>
+              <StateMap navigate={navigate} setSelectedState={setSelectedState} />
+              <CraftListing
+                crafts={crafts}
+                query={query}
             selectedState={selectedState}
             selectedCategory={selectedCategory}
             selectedMaterial={selectedMaterial}
@@ -46,17 +72,18 @@ export default function HomePage() {
             setSelectedCategory={setSelectedCategory}
             setSelectedMaterial={setSelectedMaterial}
             setSelectedTechnique={setSelectedTechnique}
-            openCraft={openCraft}
-          />
-          <Chatbot language={language} selectedState={selectedState} />
-        </>
-      )}
+              openCraft={openCraft}
+              />
+              <Chatbot language={language} selectedState={selectedState} />
+            </>
+          )}
 
-      {page === "map" && <StateMap navigate={navigate} setSelectedState={setSelectedState} />}
+          {page === "map" && <StateMap navigate={navigate} setSelectedState={setSelectedState} />}
 
-      {page === "crafts" && (
-        <CraftListing
-          query={query}
+          {page === "crafts" && (
+            <CraftListing
+              crafts={crafts}
+              query={query}
           selectedState={selectedState}
           selectedCategory={selectedCategory}
           selectedMaterial={selectedMaterial}
@@ -65,13 +92,15 @@ export default function HomePage() {
           setSelectedCategory={setSelectedCategory}
           setSelectedMaterial={setSelectedMaterial}
           setSelectedTechnique={setSelectedTechnique}
-          openCraft={openCraft}
-        />
+              openCraft={openCraft}
+            />
+          )}
+
+          {page === "detail" && selectedCraft && <CraftDetail craft={selectedCraft} />}
+
+          {page === "chatbot" && <Chatbot language={language} selectedState={selectedState} />}
+        </>
       )}
-
-      {page === "detail" && <CraftDetail craft={selectedCraft} />}
-
-      {page === "chatbot" && <Chatbot language={language} selectedState={selectedState} />}
 
       <Footer />
     </div>

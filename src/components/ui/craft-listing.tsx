@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { crafts } from "@/data/crafts";
+import { Craft } from "@/lib/types";
 import SectionHeading from "@/components/ui/section-heading";
 import CraftCard from "@/components/ui/craft-card";
 import FilterSidebar from "@/components/ui/filter-sidebar";
 
 export default function CraftListing({
+  crafts,
   query,
   selectedState,
   selectedCategory,
@@ -18,6 +19,7 @@ export default function CraftListing({
   setSelectedTechnique,
   openCraft,
 }: {
+  crafts: Craft[];
   query: string;
   selectedState: string;
   selectedCategory: string;
