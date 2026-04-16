@@ -33,20 +33,13 @@ export default function CraftListing({
 }) {
   const filtered = useMemo(() => {
     return crafts.filter((craft) => {
-      const q = query.trim().toLowerCase();
-      const qMatch =
-        !q ||
-        [craft.name, craft.state, craft.district, craft.category, craft.material, craft.technique, craft.summary]
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
       const stateMatch = selectedState === "All" || craft.state === selectedState;
       const categoryMatch = selectedCategory === "All" || craft.category === selectedCategory;
       const materialMatch = selectedMaterial === "All" || craft.material === selectedMaterial;
       const techniqueMatch = selectedTechnique === "All" || craft.technique === selectedTechnique;
-      return qMatch && stateMatch && categoryMatch && materialMatch && techniqueMatch;
+      return stateMatch && categoryMatch && materialMatch && techniqueMatch;
     });
-  }, [query, selectedState, selectedCategory, selectedMaterial, selectedTechnique]);
+  }, [crafts, selectedState, selectedCategory, selectedMaterial, selectedTechnique]);
 
   return (
     <section style={{ margin: "20px 0" }}>

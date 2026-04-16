@@ -21,12 +21,15 @@ export default function HomePage() {
   const [selectedCraftId, setSelectedCraftId] = useState(1);
 
   const [crafts, setCrafts] = useState<Craft[]>([]);
+  const [fullCrafts, setFullCrafts] = useState<Craft[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Initial load of the full dataset
   useEffect(() => {
     fetch('/api/crafts')
       .then(res => res.json())
       .then(data => {
+        setFullCrafts(data);
         setCrafts(data);
         setLoading(false);
       })
@@ -35,6 +38,30 @@ export default function HomePage() {
         setLoading(false);
       });
   }, []);
+
+  // Semantic Search Logic
+  // Link: This effect monitors the 'query' state from the Hero component.
+  // When a user types, it vectorizes the input and hits our NLP API.
+  useEffect(() => {
+    if (query.trim().length > 2) {
+      const delayId = setTimeout(() => {
+        setLoading(true);
+        fetch(`/api/search?q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => {
+            setCrafts(data);
+            setLoading(false);
+          })
+          .catch(err => {
+            console.error("Semantic search failed:", err);
+            setLoading(false);
+          });
+      }, 500); // 500ms debounce to save CPU on vectorization
+      return () => clearTimeout(delayId);
+    } else if (query.trim().length === 0 && fullCrafts.length > 0) {
+      setCrafts(fullCrafts);
+    }
+  }, [query, fullCrafts]);
 
   const selectedCraft = crafts.length > 0
     ? crafts.find((c) => c.id === selectedCraftId) || crafts[0]

@@ -15,6 +15,7 @@ export interface ICraft extends Document {
   history: string;
   authenticity: string;
   image: string;
+  embedding: number[];
 }
 
 const CraftSchema: Schema = new Schema({
@@ -32,6 +33,7 @@ const CraftSchema: Schema = new Schema({
   history: { type: String },
   authenticity: { type: String },
   image: { type: String },
+  embedding: { type: [Number], default: [] },
 });
 
 export default mongoose.models.Craft || mongoose.model<ICraft>("Craft", CraftSchema);
