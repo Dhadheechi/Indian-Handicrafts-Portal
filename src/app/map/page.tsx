@@ -3,17 +3,16 @@
 import { useState } from "react";
 import { languageLabels } from "@/data/crafts";
 import TopNav from "@/components/ui/top-nav";
-import Hero from "@/components/ui/hero";
+import StateMap from "@/components/ui/state-map";
 import Footer from "@/components/ui/footer";
 
-export default function HomePage() {
+export default function MapPage() {
   const [language, setLanguage] = useState<keyof typeof languageLabels>("English");
-  const [query, setQuery] = useState("");
 
   return (
     <div className="min-h-screen text-[var(--foreground)]">
       <TopNav language={language} setLanguage={setLanguage} />
-      <Hero language={language} query={query} setQuery={setQuery} />
+      <StateMap />
       <Footer />
     </div>
   );

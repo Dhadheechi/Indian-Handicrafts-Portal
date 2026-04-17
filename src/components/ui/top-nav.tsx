@@ -1,50 +1,47 @@
 "use client";
-import { useState } from "react";
+import Link from "next/link";
 
 export default function TopNav({
   language,
   setLanguage,
-  navigate,
 }: {
   language: string;
   setLanguage: (value: string) => void;
-  navigate: (page: string) => void;
 }) {
   const links = [
-    ["home", "Home"],
-    ["map", "Map"],
-    ["crafts", "Crafts"],
-    ["detail", "Craft Detail"],
-    ["chatbot", "Chatbot"],
+    ["/", "Home"],
+    ["/map", "Map"],
+    ["/crafts", "Crafts"],
+    ["/chatbot", "Chatbot"],
   ];
 
   return (
-    <header style={{ borderBottom: "2px solid black", padding: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <header style={{ border: "1px solid #ccb8a3", borderRadius: "16px", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255, 249, 241, 0.92)", boxShadow: "0 10px 24px rgba(91, 62, 37, 0.08)", backdropFilter: "blur(2px)" }}>
       <div>
-        <button onClick={() => navigate("home")} style={{ fontWeight: "bold", fontSize: "1.2rem", background: "none", border: "none", cursor: "pointer" }}>
+        <Link href="/" style={{ fontWeight: 700, fontSize: "1.22rem", background: "none", border: "none", cursor: "pointer", color: "#2f2116", padding: 0, textDecoration: "none" }}>
           Indian Handicrafts Portal
-        </button>
+        </Link>
         {/* <div style={{ fontSize: "0.8rem" }}>Novice frontend build</div> */}
       </div>
 
       <nav>
         <ul style={{ display: "flex", gap: "10px", listStyle: "none", margin: 0, padding: 0 }}>
-          {links.map(([key, label]) => (
-            <li key={key}>
-              <button 
-                onClick={() => navigate(key)} 
-                style={{ padding: "5px 10px", border: "1px solid grey", cursor: "pointer" }}
+          {links.map(([href, label]) => (
+            <li key={href}>
+              <Link
+                href={href}
+                style={{ display: "inline-block", padding: "8px 12px", border: "1px solid #ccb8a3", borderRadius: "999px", cursor: "pointer", background: "#fffaf3", color: "#3a2a1e", fontSize: "0.88rem", fontWeight: 600, textDecoration: "none" }}
               >
                 {label}
-              </button>
+              </Link>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div>
+      <div style={{ color: "#4a3b2f", fontSize: "0.9rem", fontWeight: 600 }}>
         Language: 
-        <select value={language} onChange={(e) => setLanguage(e.target.value)} style={{ marginLeft: "5px" }}>
+        <select value={language} onChange={(e) => setLanguage(e.target.value)} style={{ marginLeft: "8px", border: "1px solid #ccb8a3", background: "#fffdf9", color: "#3a2a1e", padding: "6px 10px", borderRadius: "8px" }}>
           <option value="English">EN</option>
           <option value="Hindi">HI</option>
           <option value="Telugu">TE</option>

@@ -42,7 +42,7 @@ export default function CraftListing({
   }, [crafts, selectedState, selectedCategory, selectedMaterial, selectedTechnique]);
 
   return (
-    <section style={{ margin: "20px 0" }}>
+    <section style={{ margin: "24px 0" }}>
       <SectionHeading
         title="Find Crafts"
         subtitle="Search and filter for handicrafts using the options below."
@@ -61,10 +61,10 @@ export default function CraftListing({
         />
 
         <div style={{ flex: 1 }}>
-          <div style={{ border: "1px solid black", padding: "10px", marginBottom: "20px" }}>
-            <h3 style={{ margin: 0 }}>Showing Results</h3>
-            <p style={{ margin: "5px 0" }}>{filtered.length} crafts found</p>
-            <div style={{ fontSize: "0.8rem", fontStyle: "italic" }}>
+          <div style={{ border: "1px solid #cfbba6", padding: "12px 14px", marginBottom: "20px", borderRadius: "12px", background: "#fffaf4", boxShadow: "0 8px 24px rgba(87, 59, 38, 0.06)" }}>
+            <h3 style={{ margin: 0, color: "#2e2016" }}>Showing Results</h3>
+            <p style={{ margin: "5px 0", color: "#5a493b" }}>{filtered.length} crafts found</p>
+            <div style={{ fontSize: "0.8rem", fontStyle: "italic", color: "#6f5b4c" }}>
               Note: Results are filtered by state, category, material, and technique.
             </div>
           </div>

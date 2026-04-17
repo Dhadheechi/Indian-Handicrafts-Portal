@@ -3,28 +3,79 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
-  --border: #cccccc;
+  --background: #f6f0e6;
+  --background-elevated: #fffaf3;
+  --foreground: #1c1612;
+  --muted-foreground: #5f5348;
+  --border: #d7c9b8;
+  --border-strong: #bea58b;
+  --accent: #9e4f2f;
+  --accent-soft: #e8d7c5;
+  --ring: #b45f3a;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--background);
+  background:
+    radial-gradient(circle at 12% 10%, #ffffff 0%, rgba(255, 255, 255, 0) 36%),
+    radial-gradient(circle at 88% 0%, #f2e0ca 0%, rgba(242, 224, 202, 0) 42%),
+    linear-gradient(165deg, #f9f2e8 0%, #f6ecdf 44%, #efe1cf 100%);
   color: var(--foreground);
-  font-family: sans-serif;
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
   margin: 0;
-  padding: 10px;
+  min-height: 100vh;
+  padding: 12px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Minimal novice CSS indicators */
-.novice-border {
-  border: 1px solid var(--border);
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), "Georgia", serif;
+  letter-spacing: 0.01em;
+  line-height: 1.22;
 }
 
-.novice-padding {
-  padding: 10px;
+a {
+  color: inherit;
 }
 
-.novice-margin {
-  margin: 10px;
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 140ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+input,
+select,
+textarea {
+  border-radius: 10px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
