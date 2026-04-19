@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, ReactNode, useState } from "react";
+import { Fragment, ReactNode, useMemo, useState } from "react";
 import { chatbotSeed, languageLabels } from "@/data/crafts";
 import SectionHeading from "@/components/ui/section-heading";
 
@@ -96,6 +96,9 @@ export default function Chatbot({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [lastAppliedFilters, setLastAppliedFilters] = useState<AppliedFilters | null>(null);
+  const conversationId = useMemo(() => {
+    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }, []);
   
   const send = async () => {
     if (!input.trim() || isLoading) return;
@@ -114,6 +117,7 @@ export default function Chatbot({
           language,
           contextFilters: lastAppliedFilters,
           history: messages.slice(-10).map((msg) => ({ role: msg.role, text: msg.text })),
+          conversationId,
         }),
       });
 

@@ -17,6 +17,7 @@ type ChatRequestBody = {
   language?: string;
   history?: ChatTurn[];
   contextFilters?: AppliedFilters;
+  conversationId?: string;
 };
 
 type CraftDoc = {
@@ -39,6 +40,75 @@ type AppliedFilters = {
   techniques: string[];
   giPreference: GIPreference;
 };
+
+type ChatSessionContext = {
+  lastFilters: AppliedFilters;
+  lastShownCraftIds: number[];
+  lastUserMessages: string[];
+  updatedAt: number;
+};
+
+const DEFAULT_FILTERS: AppliedFilters = {
+  states: [],
+  categories: [],
+  materials: [],
+  techniques: [],
+  giPreference: 'any',
+};
+
+const SESSION_TTL_MS = 1000 * 60 * 60;
+
+const globalSessionStore = globalThis as typeof globalThis & {
+  __chatSessions?: Map<string, ChatSessionContext>;
+};
+
+function getSessionStore(): Map<string, ChatSessionContext> {
+  if (!globalSessionStore.__chatSessions) {
+    globalSessionStore.__chatSessions = new Map<string, ChatSessionContext>();
+  }
+  return globalSessionStore.__chatSessions;
+}
+
+function cleanupExpiredSessions(store: Map<string, ChatSessionContext>) {
+  const now = Date.now();
+  for (const [sessionId, context] of store.entries()) {
+    if (now - context.updatedAt > SESSION_TTL_MS) {
+      store.delete(sessionId);
+    }
+  }
+}
+
+function getSessionContext(conversationId: string): ChatSessionContext {
+  const store = getSessionStore();
+  cleanupExpiredSessions(store);
+
+  const existing = store.get(conversationId);
+  if (existing) return existing;
+
+  const created: ChatSessionContext = {
+    lastFilters: { ...DEFAULT_FILTERS },
+    lastShownCraftIds: [],
+    lastUserMessages: [],
+    updatedAt: Date.now(),
+  };
+  store.set(conversationId, created);
+  return created;
+}
+
+function saveSessionContext(conversationId: string, context: ChatSessionContext) {
+  const store = getSessionStore();
+  store.set(conversationId, { ...context, updatedAt: Date.now() });
+}
+
+function cloneFilters(filters: AppliedFilters): AppliedFilters {
+  return {
+    states: [...filters.states],
+    categories: [...filters.categories],
+    materials: [...filters.materials],
+    techniques: [...filters.techniques],
+    giPreference: filters.giPreference,
+  };
+}
 
 function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -156,6 +226,77 @@ function isComparisonIntent(message: string): boolean {
   return /\b(compare|difference|vs|versus|better than)\b/i.test(message);
 }
 
+function isContextFollowup(message: string): boolean {
+  return /\b(above|earlier|previous|you showed|you suggested|those|these|them|first one|second one)\b/i.test(message);
+}
+
+function isMetadataQuestion(message: string): boolean {
+  return /\b(states?|categories?|materials?|techniques?|gi status|which state|what state)\b/i.test(message);
+}
+
+function isHandicraftDomain(message: string): boolean {
+  return /\b(craft|handicraft|artisan|gi|geographical indication|textile|pottery|weaving|wood|metal|state|technique|material|history)\b/i.test(message);
+}
+
+function buildNoContextReply(): string {
+  return [
+    'I can help, but I do not have earlier craft suggestions in this chat yet.',
+    '',
+    'Ask for a recommendation first, such as:',
+    '1. "Show GI crafts from Karnataka"',
+    '2. "Recommend wood crafts"',
+  ].join('\n');
+}
+
+function buildMetadataFromCraftsReply(crafts: CraftDoc[], message: string): string {
+  const q = normalizeText(message);
+  const states = uniqueStrings(crafts.map((craft) => craft.state));
+  const categories = uniqueStrings(crafts.map((craft) => craft.category));
+  const materials = uniqueStrings(crafts.map((craft) => craft.material));
+  const techniques = uniqueStrings(crafts.map((craft) => craft.technique));
+  const giCount = crafts.filter((craft) => craft.gi).length;
+
+  if (q.includes('state')) {
+    return [
+      `The previously shown crafts are from ${states.length} state${states.length > 1 ? 's' : ''}:`,
+      ...states.map((state, index) => `${index + 1}. ${state}`),
+    ].join('\n');
+  }
+
+  if (q.includes('categor')) {
+    return [
+      'The main categories in the previously shown crafts are:',
+      ...categories.map((category, index) => `${index + 1}. ${category}`),
+    ].join('\n');
+  }
+
+  if (q.includes('material')) {
+    return [
+      'The materials represented in the previously shown crafts are:',
+      ...materials.map((material, index) => `${index + 1}. ${material}`),
+    ].join('\n');
+  }
+
+  if (q.includes('technique')) {
+    return [
+      'The techniques used in the previously shown crafts are:',
+      ...techniques.map((technique, index) => `${index + 1}. ${technique}`),
+    ].join('\n');
+  }
+
+  if (q.includes('gi')) {
+    return `Out of the previously shown ${crafts.length} crafts, ${giCount} are GI certified and ${crafts.length - giCount} are non-GI.`;
+  }
+
+  return [
+    'Here is a quick summary of the previously shown crafts:',
+    `States: ${states.join(', ')}`,
+    `Categories: ${categories.join(', ')}`,
+    `Materials: ${materials.join(', ')}`,
+    `Techniques: ${techniques.join(', ')}`,
+  ].join('\n');
+}
+
 function buildConversationalReply(results: CraftDoc[], filters: AppliedFilters, usedDeterministic: boolean): string {
   const filterSummary = buildFilterSummary(filters);
 
@@ -191,6 +332,8 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ChatRequestBody;
     const message = body.message?.trim();
+    const conversationId = (body.conversationId || 'default').trim() || 'default';
+    const sessionContext = getSessionContext(conversationId);
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -201,6 +344,8 @@ export async function POST(request: Request) {
 
     const crafts = await Craft.find({}).lean<CraftDoc[]>();
 
+    sessionContext.lastUserMessages = [...sessionContext.lastUserMessages, message].slice(-8);
+
     if (isGreeting(message)) {
       return NextResponse.json({
         reply: [
@@ -210,13 +355,7 @@ export async function POST(request: Request) {
           'Try asking: "Recommend GI wood crafts" or "Show textile crafts from Kerala".',
         ].join('\n'),
         sources: [],
-        appliedFilters: {
-          states: [],
-          categories: [],
-          materials: [],
-          techniques: [],
-          giPreference: 'any' as GIPreference,
-        },
+        appliedFilters: DEFAULT_FILTERS,
       });
     }
 
@@ -224,13 +363,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         reply: 'You are welcome. If you want, I can suggest crafts by price style, state, or GI preference next.',
         sources: [],
-        appliedFilters: {
-          states: [],
-          categories: [],
-          materials: [],
-          techniques: [],
-          giPreference: 'any' as GIPreference,
-        },
+        appliedFilters: cloneFilters(sessionContext.lastFilters),
       });
     }
 
@@ -242,13 +375,7 @@ export async function POST(request: Request) {
           'I can help with craft discovery, comparison, history, GI context, and recommendations from the catalog.',
         ].join('\n'),
         sources: [],
-        appliedFilters: {
-          states: [],
-          categories: [],
-          materials: [],
-          techniques: [],
-          giPreference: 'any' as GIPreference,
-        },
+        appliedFilters: cloneFilters(sessionContext.lastFilters),
       });
     }
 
@@ -265,6 +392,30 @@ export async function POST(request: Request) {
     const techniques = Array.from(new Set(crafts.map((craft) => craft.technique))).filter(Boolean);
     const craftNames = Array.from(new Set(crafts.map((craft) => craft.name))).filter(Boolean);
 
+    if (isContextFollowup(message) && isMetadataQuestion(message)) {
+      const previousCrafts = crafts.filter((craft) => sessionContext.lastShownCraftIds.includes(craft.id));
+
+      if (previousCrafts.length === 0) {
+        return NextResponse.json({
+          reply: buildNoContextReply(),
+          sources: [],
+          appliedFilters: cloneFilters(sessionContext.lastFilters),
+        });
+      }
+
+      return NextResponse.json({
+        reply: buildMetadataFromCraftsReply(previousCrafts, message),
+        sources: previousCrafts.slice(0, 6).map((craft) => ({
+          id: craft.id,
+          name: craft.name,
+          state: craft.state,
+          category: craft.category,
+          gi: craft.gi,
+        })),
+        appliedFilters: cloneFilters(sessionContext.lastFilters),
+      });
+    }
+
     const mentionedCraftNames = extractMentionedValues(message, craftNames);
 
     if (isDetailIntent(message) && mentionedCraftNames.length === 1) {
@@ -273,6 +424,16 @@ export async function POST(request: Request) {
       );
 
       if (selectedCraft) {
+        sessionContext.lastShownCraftIds = [selectedCraft.id];
+        sessionContext.lastFilters = {
+          states: [selectedCraft.state],
+          categories: [selectedCraft.category],
+          materials: [selectedCraft.material],
+          techniques: [selectedCraft.technique],
+          giPreference: selectedCraft.gi ? 'gi' : 'non-gi',
+        };
+        saveSessionContext(conversationId, sessionContext);
+
         return NextResponse.json({
           reply: [
             `${selectedCraft.name} is a ${selectedCraft.category} craft from ${selectedCraft.state}.`,
@@ -311,6 +472,16 @@ export async function POST(request: Request) {
 
       if (compareCrafts.length === 2) {
         const [a, b] = compareCrafts;
+        sessionContext.lastShownCraftIds = [a.id, b.id];
+        sessionContext.lastFilters = {
+          states: uniqueStrings([a.state, b.state]),
+          categories: uniqueStrings([a.category, b.category]),
+          materials: uniqueStrings([a.material, b.material]),
+          techniques: uniqueStrings([a.technique, b.technique]),
+          giPreference: 'any',
+        };
+        saveSessionContext(conversationId, sessionContext);
+
         return NextResponse.json({
           reply: [
             `Comparison: ${a.name} vs ${b.name}`,
@@ -351,7 +522,9 @@ export async function POST(request: Request) {
     const giFromMessage = detectGIPreference(message);
 
     const refinementMode = hasRefinementCue(message);
-    const inheritedFilters = refinementMode ? body.contextFilters : undefined;
+    const inheritedFilters = refinementMode
+      ? (body.contextFilters || sessionContext.lastFilters)
+      : undefined;
 
     const selectedState = (body.selectedState || '').trim();
     const selectedStateFilter =
@@ -434,6 +607,20 @@ export async function POST(request: Request) {
       const topScore = scored[0]?.score ?? 0;
       const cutoff = Math.max(0.12, topScore * 0.55);
 
+      const mostlyUnrelated = topScore < 0.22 && !isHandicraftDomain(message) && !isContextFollowup(message);
+
+      if (mostlyUnrelated) {
+        return NextResponse.json({
+          reply: [
+            'I can chat naturally, but I stay focused on Indian handicrafts in this portal.',
+            '',
+            'Try asking about states, techniques, materials, GI status, or craft comparisons.',
+          ].join('\n'),
+          sources: [],
+          appliedFilters: cloneFilters(sessionContext.lastFilters),
+        });
+      }
+
       rankedResults = scored
         .filter((item) => item.score >= cutoff)
         .slice(0, 8)
@@ -451,6 +638,10 @@ export async function POST(request: Request) {
       category: craft.category,
       gi: craft.gi,
     }));
+
+    sessionContext.lastFilters = cloneFilters(filters);
+    sessionContext.lastShownCraftIds = rankedResults.slice(0, 8).map((craft) => craft.id);
+    saveSessionContext(conversationId, sessionContext);
 
     return NextResponse.json({
       reply,
