@@ -5,6 +5,7 @@ import { Craft } from "@/lib/types";
 import SectionHeading from "@/components/ui/section-heading";
 import CraftCard from "@/components/ui/craft-card";
 import FilterSidebar from "@/components/ui/filter-sidebar";
+import { getNormalizedTag } from "@/data/crafts";
 
 export default function CraftListing({
   crafts,
@@ -34,9 +35,9 @@ export default function CraftListing({
   const filtered = useMemo(() => {
     return crafts.filter((craft) => {
       const stateMatch = selectedState === "All" || craft.state === selectedState;
-      const categoryMatch = selectedCategory === "All" || craft.category === selectedCategory;
-      const materialMatch = selectedMaterial === "All" || craft.material === selectedMaterial;
-      const techniqueMatch = selectedTechnique === "All" || craft.technique === selectedTechnique;
+      const categoryMatch = selectedCategory === "All" || getNormalizedTag('category', craft.category) === selectedCategory;
+      const materialMatch = selectedMaterial === "All" || getNormalizedTag('material', craft.material) === selectedMaterial;
+      const techniqueMatch = selectedTechnique === "All" || getNormalizedTag('technique', craft.technique) === selectedTechnique;
       return stateMatch && categoryMatch && materialMatch && techniqueMatch;
     });
   }, [crafts, selectedState, selectedCategory, selectedMaterial, selectedTechnique]);
@@ -69,12 +70,24 @@ export default function CraftListing({
             </div>
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-            {filtered.map((craft) => (
-              <div key={craft.id} style={{ width: "300px" }}>
-                <CraftCard craft={craft} onOpen={() => openCraft(craft.id)} />
-              </div>
-            ))}
+          <div style={{ 
+            maxHeight: "75vh", 
+            overflowY: "auto", 
+            paddingRight: "10px",
+            scrollbarWidth: "thin",
+            scrollbarColor: "#9e4f2f #f4e6d3"
+          }}>
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(3, 1fr)", 
+              gap: "15px" 
+            }}>
+              {filtered.map((craft) => (
+                <div key={craft.id}>
+                  <CraftCard craft={craft} onOpen={() => openCraft(craft.id)} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
