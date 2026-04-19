@@ -144,7 +144,8 @@ export default function StateMap() {
   );
 
   const handleStateClick = useCallback(
-    (stateName: string) => {
+    (idOrName: string) => {
+      const stateName = stateCodeToName[idOrName] || idOrName;
       setSelectedState(stateName);
       // Navigate after a brief delay so the user sees the selection
       setTimeout(() => {

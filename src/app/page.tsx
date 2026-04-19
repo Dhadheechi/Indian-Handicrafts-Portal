@@ -63,16 +63,20 @@ export default function HomePage() {
   }, [query]);
 
   return (
-    <div className="min-h-screen text-[var(--foreground)]">
-      <TopNav language={language} setLanguage={setLanguage} />
-      <Hero
-        language={language}
-        query={query}
-        setQuery={setQuery}
-        searchResults={searchResults}
-        isSearching={isSearching}
-        searchError={searchError}
-      />
+    <div className="min-h-screen flex flex-col text-[var(--foreground)]" style={{ padding: "0 20px" }}>
+      <div style={{ marginTop: "20px" }}>
+        <TopNav language={language} setLanguage={setLanguage as any} />
+      </div>
+      <main className="flex-1 flex flex-col justify-center">
+        <Hero
+          language={language}
+          query={query}
+          setQuery={setQuery}
+          searchResults={searchResults}
+          isSearching={isSearching}
+          searchError={searchError}
+        />
+      </main>
       <Footer />
     </div>
   );

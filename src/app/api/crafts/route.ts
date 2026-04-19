@@ -13,3 +13,24 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    await dbConnect();
+    const data = await req.json();
+
+    // Find the latest ID to increment
+    const lastCraft = await Craft.findOne().sort({ id: -1 });
+    const nextId = lastCraft ? lastCraft.id + 1 : 1;
+
+    const newCraft = new Craft({
+      ...data,
+      id: nextId,
+    });
+
+    await newCraft.save();
+    return NextResponse.json(newCraft, { status: 201 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

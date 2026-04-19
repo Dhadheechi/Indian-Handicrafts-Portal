@@ -12,6 +12,7 @@ export default function TopNav({
     ["/", "Home"],
     ["/map", "Map"],
     ["/crafts", "Crafts"],
+    ["/add-craft", "Register Craft"],
     ["/chatbot", "Chatbot"],
   ];
 

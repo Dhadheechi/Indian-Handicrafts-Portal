@@ -27,38 +27,64 @@ export default function Hero({
   const canSearch = query.trim().length >= 2;
 
   return (
-    <section style={{ border: "1px solid #ccb8a3", borderRadius: "18px", margin: "22px 0", padding: "24px", background: "linear-gradient(140deg, #fff9f0 0%, #f8ecdc 100%)", boxShadow: "0 14px 30px rgba(92, 63, 40, 0.08)" }}>
-      <div style={{ marginBottom: "15px" }}>
-        <span style={{ border: "1px solid #c9b19b", borderRadius: "999px", padding: "4px 11px", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "#614531", background: "rgba(255, 255, 255, 0.85)", fontWeight: 700 }}>
+    <section style={{ 
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      border: "1px solid #ccb8a3", 
+      borderRadius: "18px", 
+      margin: "20px 0", 
+      padding: "50px 40px", 
+      background: "linear-gradient(140deg, #fff9f0 0%, #f8ecdc 100%)", 
+      boxShadow: "0 14px 30px rgba(92, 63, 40, 0.08)" 
+    }}>
+      <div style={{ marginBottom: "20px" }}>
+        <span style={{ border: "1px solid #c9b19b", borderRadius: "999px", padding: "6px 14px", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "#614531", background: "rgba(255, 255, 255, 0.85)", fontWeight: 700 }}>
           Cultural Discovery Tool
         </span>
       </div>
 
-      <h1 style={{ fontSize: "2.7rem", fontWeight: 700, margin: "0 0 10px 0", color: "#2c1d12" }}>
+      <h1 style={{ fontSize: "3.5rem", fontWeight: 800, margin: "0 0 16px 0", color: "#2c1d12", letterSpacing: "-0.02em" }}>
         {t.heroTitle}
       </h1>
-      <p style={{ color: "#5d4b3e", marginBottom: "22px", maxWidth: "62ch" }}>
+      <p style={{ color: "#5d4b3e", marginBottom: "30px", maxWidth: "62ch", fontSize: "1.2rem", lineHeight: "1.6" }}>
         {t.heroSubtitle}
       </p>
 
-      <div style={{ marginBottom: "20px" }}>
+      <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t.searchPlaceholder}
-          style={{ padding: "11px 13px", width: "300px", marginRight: "10px", border: "1px solid #cbb39d", borderRadius: "11px", background: "#fffdf9", color: "#36261a" }}
+          style={{ padding: "14px 18px", width: "450px", border: "1px solid #cbb39d", borderRadius: "12px", background: "#fffdf9", color: "#36261a", fontSize: "1.05rem" }}
         />
         <Link
           href="/crafts"
-          style={{ display: "inline-block", padding: "11px 20px", border: "1px solid #8f4428", borderRadius: "11px", cursor: "pointer", background: "#9e4f2f", color: "#fff8f3", fontWeight: 700, textDecoration: "none" }}
+          style={{ display: "inline-block", padding: "14px 28px", border: "1px solid #8f4428", borderRadius: "12px", cursor: "pointer", background: "#9e4f2f", color: "#fff8f3", fontWeight: 700, textDecoration: "none", fontSize: "1.05rem" }}
         >
           {t.browseCrafts}
         </Link>
       </div>
 
+      <div style={{ display: "flex", gap: "12px", marginBottom: "30px" }}>
+        <Link
+          href="/map"
+          style={{ display: "inline-block", padding: "12px 22px", border: "1px solid #c9b19b", borderRadius: "12px", cursor: "pointer", background: "#fffdf8", color: "#4a3525", fontWeight: 600, textDecoration: "none", fontSize: "1rem" }}
+        >
+          [Go to Map] {t.viewMap}
+        </Link>
+        <Link
+          href="/chatbot"
+          style={{ display: "inline-block", padding: "12px 22px", border: "1px solid #c9b19b", borderRadius: "12px", cursor: "pointer", background: "#fffdf8", color: "#4a3525", fontWeight: 600, textDecoration: "none", fontSize: "1rem" }}
+        >
+          [Talk to Bot] {t.chatWithAssistant}
+        </Link>
+      </div>
+
       {hasSearchInput && (
-        <div style={{ border: "1px solid #cfbaa5", borderRadius: "14px", padding: "14px", marginBottom: "20px", background: "#fffaf4" }}>
+        <div style={{ border: "1px solid #cfbaa5", borderRadius: "14px", padding: "14px", marginBottom: "20px", background: "#fffaf4", flex: 1, overflowY: "auto" }}>
           <div style={{ fontWeight: 700, color: "#372518", marginBottom: "8px" }}>
             Search Results
           </div>
@@ -127,21 +153,6 @@ export default function Hero({
           )}
         </div>
       )}
-
-      <div style={{ display: "flex", gap: "10px" }}>
-        <Link
-          href="/map"
-          style={{ display: "inline-block", padding: "9px 15px", border: "1px solid #c9b19b", borderRadius: "10px", cursor: "pointer", background: "#fffdf8", color: "#4a3525", fontWeight: 600, textDecoration: "none" }}
-        >
-          [Go to Map] {t.viewMap}
-        </Link>
-        <Link
-          href="/chatbot"
-          style={{ display: "inline-block", padding: "9px 15px", border: "1px solid #c9b19b", borderRadius: "10px", cursor: "pointer", background: "#fffdf8", color: "#4a3525", fontWeight: 600, textDecoration: "none" }}
-        >
-          [Talk to Bot] {t.chatWithAssistant}
-        </Link>
-      </div>
     </section>
   );
 }

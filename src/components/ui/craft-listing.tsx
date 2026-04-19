@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Craft } from "@/lib/types";
 import SectionHeading from "@/components/ui/section-heading";
 import CraftCard from "@/components/ui/craft-card";
-import FilterSidebar from "@/components/ui/filter-sidebar";
+import FilterBar from "@/components/ui/filter-bar";
 import { getNormalizedTag } from "@/data/crafts";
 
 export default function CraftListing({
@@ -49,45 +49,51 @@ export default function CraftListing({
         subtitle="Search and filter for handicrafts using the options below."
       />
       
-      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
-        <FilterSidebar
-          selectedState={selectedState}
-          setSelectedState={setSelectedState}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          selectedMaterial={selectedMaterial}
-          setSelectedMaterial={setSelectedMaterial}
-          selectedTechnique={selectedTechnique}
-          setSelectedTechnique={setSelectedTechnique}
-        />
+      <FilterBar
+        selectedState={selectedState}
+        setSelectedState={setSelectedState}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        selectedMaterial={selectedMaterial}
+        setSelectedMaterial={setSelectedMaterial}
+        selectedTechnique={selectedTechnique}
+        setSelectedTechnique={setSelectedTechnique}
+      />
+      
+      <div style={{ 
+        border: "1px solid #ccb8a3", 
+        padding: "24px", 
+        borderRadius: "20px", 
+        background: "rgba(255, 250, 244, 0.4)",
+        boxShadow: "inset 0 2px 10px rgba(82, 56, 36, 0.03)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px" }}>
+          <h3 style={{ margin: 0, color: "#2e2016", fontSize: "1.2rem", fontWeight: 800 }}>
+            {filtered.length} Treasures Found
+          </h3>
+          <p style={{ margin: 0, color: "#8c7b6c", fontSize: "0.85rem" }}>
+            Scroll to explore more
+          </p>
+        </div>
 
-        <div style={{ flex: 1 }}>
-          <div style={{ border: "1px solid #cfbba6", padding: "12px 14px", marginBottom: "20px", borderRadius: "12px", background: "#fffaf4", boxShadow: "0 8px 24px rgba(87, 59, 38, 0.06)" }}>
-            <h3 style={{ margin: 0, color: "#2e2016" }}>Showing Results</h3>
-            <p style={{ margin: "5px 0", color: "#5a493b" }}>{filtered.length} crafts found</p>
-            <div style={{ fontSize: "0.8rem", fontStyle: "italic", color: "#6f5b4c" }}>
-              Note: Results are filtered by state, category, material, and technique.
-            </div>
-          </div>
-
+        <div style={{ 
+          height: "360px", /* Height of exactly one row of cards */
+          overflowY: "auto", 
+          paddingBottom: "10px",
+          paddingRight: "10px",
+          scrollbarWidth: "thin",
+          scrollbarColor: "#9e4f2f #f4e6d3"
+        }}>
           <div style={{ 
-            maxHeight: "75vh", 
-            overflowY: "auto", 
-            paddingRight: "10px",
-            scrollbarWidth: "thin",
-            scrollbarColor: "#9e4f2f #f4e6d3"
+            display: "grid", 
+            gridTemplateColumns: "repeat(3, 1fr)", 
+            gap: "20px" 
           }}>
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(3, 1fr)", 
-              gap: "15px" 
-            }}>
-              {filtered.map((craft) => (
-                <div key={craft.id}>
-                  <CraftCard craft={craft} onOpen={() => openCraft(craft.id)} />
-                </div>
-              ))}
-            </div>
+            {filtered.map((craft) => (
+              <div key={craft.id}>
+                <CraftCard craft={craft} onOpen={() => openCraft(craft.id)} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
