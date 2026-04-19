@@ -4,11 +4,25 @@ import { useMemo } from "react";
 import { Craft } from "@/lib/types";
 import SectionHeading from "@/components/ui/section-heading";
 import CraftCard from "@/components/ui/craft-card";
-import FilterBar from "@/components/ui/filter-bar";
-import { getNormalizedTag } from "@/data/crafts";
+import FilterSidebar from "@/components/ui/filter-sidebar";
+
+type FilterMaps = {
+  category: Record<string, string>;
+  material: Record<string, string>;
+  technique: Record<string, string>;
+};
+
+type FilterOptions = {
+  category: string[];
+  material: string[];
+  technique: string[];
+};
 
 export default function CraftListing({
   crafts,
+  states,
+  filters,
+  maps,
   query,
   selectedState,
   selectedCategory,
@@ -21,6 +35,9 @@ export default function CraftListing({
   openCraft,
 }: {
   crafts: Craft[];
+  states: string[];
+  filters: FilterOptions;
+  maps: FilterMaps;
   query: string;
   selectedState: string;
   selectedCategory: string;
@@ -32,15 +49,20 @@ export default function CraftListing({
   setSelectedTechnique: (v: string) => void;
   openCraft: (id: number) => void;
 }) {
+  const normalizeByMap = (type: keyof FilterMaps, value: string): string => {
+    if (value === "All") return "All";
+    return maps[type][value] || value;
+  };
+
   const filtered = useMemo(() => {
     return crafts.filter((craft) => {
       const stateMatch = selectedState === "All" || craft.state === selectedState;
-      const categoryMatch = selectedCategory === "All" || getNormalizedTag('category', craft.category) === selectedCategory;
-      const materialMatch = selectedMaterial === "All" || getNormalizedTag('material', craft.material) === selectedMaterial;
-      const techniqueMatch = selectedTechnique === "All" || getNormalizedTag('technique', craft.technique) === selectedTechnique;
+      const categoryMatch = selectedCategory === "All" || normalizeByMap('category', craft.category) === selectedCategory;
+      const materialMatch = selectedMaterial === "All" || normalizeByMap('material', craft.material) === selectedMaterial;
+      const techniqueMatch = selectedTechnique === "All" || normalizeByMap('technique', craft.technique) === selectedTechnique;
       return stateMatch && categoryMatch && materialMatch && techniqueMatch;
     });
-  }, [crafts, selectedState, selectedCategory, selectedMaterial, selectedTechnique]);
+  }, [crafts, selectedState, selectedCategory, selectedMaterial, selectedTechnique, maps]);
 
   return (
     <section style={{ margin: "24px 0" }}>
@@ -49,32 +71,28 @@ export default function CraftListing({
         subtitle="Search and filter for handicrafts using the options below."
       />
       
-      <FilterBar
-        selectedState={selectedState}
-        setSelectedState={setSelectedState}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedMaterial={selectedMaterial}
-        setSelectedMaterial={setSelectedMaterial}
-        selectedTechnique={selectedTechnique}
-        setSelectedTechnique={setSelectedTechnique}
-      />
-      
-      <div style={{ 
-        border: "1px solid #ccb8a3", 
-        padding: "24px", 
-        borderRadius: "20px", 
-        background: "rgba(255, 250, 244, 0.4)",
-        boxShadow: "inset 0 2px 10px rgba(82, 56, 36, 0.03)"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px" }}>
-          <h3 style={{ margin: 0, color: "#2e2016", fontSize: "1.2rem", fontWeight: 800 }}>
-            {filtered.length} Treasures Found
-          </h3>
-          <p style={{ margin: 0, color: "#8c7b6c", fontSize: "0.85rem" }}>
-            Scroll to explore more
-          </p>
-        </div>
+      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+        <FilterSidebar
+          states={states}
+          filters={filters}
+          selectedState={selectedState}
+          setSelectedState={setSelectedState}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          selectedMaterial={selectedMaterial}
+          setSelectedMaterial={setSelectedMaterial}
+          selectedTechnique={selectedTechnique}
+          setSelectedTechnique={setSelectedTechnique}
+        />
+
+        <div style={{ flex: 1 }}>
+          <div style={{ border: "1px solid #cfbba6", padding: "12px 14px", marginBottom: "20px", borderRadius: "12px", background: "#fffaf4", boxShadow: "0 8px 24px rgba(87, 59, 38, 0.06)" }}>
+            <h3 style={{ margin: 0, color: "#2e2016" }}>Showing Results</h3>
+            <p style={{ margin: "5px 0", color: "#5a493b" }}>{filtered.length} crafts found</p>
+            <div style={{ fontSize: "0.8rem", fontStyle: "italic", color: "#6f5b4c" }}>
+              Note: Results are filtered by state, category, material, and technique.
+            </div>
+          </div>
 
         <div style={{ 
           height: "360px", /* Height of exactly one row of cards */
@@ -89,11 +107,22 @@ export default function CraftListing({
             gridTemplateColumns: "repeat(3, 1fr)", 
             gap: "20px" 
           }}>
-            {filtered.map((craft) => (
-              <div key={craft.id}>
-                <CraftCard craft={craft} onOpen={() => openCraft(craft.id)} />
-              </div>
-            ))}
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(3, 1fr)", 
+              gap: "15px" 
+            }}>
+              {filtered.map((craft) => (
+                <div key={craft.id}>
+                  <CraftCard
+                    craft={craft}
+                    categoryTag={normalizeByMap('category', craft.category)}
+                    techniqueTag={normalizeByMap('technique', craft.technique)}
+                    onOpen={() => openCraft(craft.id)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

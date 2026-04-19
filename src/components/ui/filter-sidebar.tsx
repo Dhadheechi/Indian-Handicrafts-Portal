@@ -1,8 +1,8 @@
 "use client";
 
-import { filters, states } from "@/data/crafts";
-
 export default function FilterSidebar({
+  states,
+  filters,
   selectedState,
   setSelectedState,
   selectedCategory,
@@ -12,6 +12,12 @@ export default function FilterSidebar({
   selectedTechnique,
   setSelectedTechnique,
 }: {
+  states: string[];
+  filters: {
+    category: string[];
+    material: string[];
+    technique: string[];
+  };
   selectedState: string;
   setSelectedState: (v: string) => void;
   selectedCategory: string;

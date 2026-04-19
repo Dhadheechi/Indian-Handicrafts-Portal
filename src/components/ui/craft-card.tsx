@@ -1,18 +1,17 @@
 "use client";
 import { Craft } from "@/lib/types";
-import { getNormalizedTag } from "@/data/crafts";
 
 export default function CraftCard({
   craft,
+  categoryTag,
+  techniqueTag,
   onOpen,
 }: {
   craft: Craft;
+  categoryTag: string;
+  techniqueTag: string;
   onOpen: () => void;
 }) {
-  const categoryTag = getNormalizedTag('category', craft.category);
-  const materialTag = getNormalizedTag('material', craft.material);
-  const techniqueTag = getNormalizedTag('technique', craft.technique);
-
   return (
     <div style={{ 
       border: "1px solid #cfb9a2", 
