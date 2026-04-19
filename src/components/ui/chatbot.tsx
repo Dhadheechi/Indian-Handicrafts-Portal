@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, ReactNode, useMemo, useState } from "react";
+import { Fragment, ReactNode, useEffect, useState } from "react";
 import { chatbotSeed, languageLabels } from "@/data/crafts";
 import SectionHeading from "@/components/ui/section-heading";
 
@@ -32,6 +32,53 @@ type ChatApiResponse = {
   sources?: ChatSource[];
   appliedFilters?: AppliedFilters;
 };
+
+type StoredChatState = {
+  conversationId: string;
+  messages: ChatMessage[];
+  lastAppliedFilters: AppliedFilters | null;
+  updatedAt: number;
+};
+
+type ChatHistoryResponse = {
+  conversationId: string;
+  messages: ChatMessage[];
+  lastAppliedFilters: AppliedFilters | null;
+};
+
+const CHAT_STORAGE_KEY = "ihp-chatbot-recent-v1";
+
+function createConversationId(): string {
+  return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isValidRole(role: unknown): role is ChatMessage["role"] {
+  return role === "assistant" || role === "user";
+}
+
+function sanitizeStoredMessages(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item) => {
+      if (!item || typeof item !== "object") return false;
+      const role = (item as { role?: unknown }).role;
+      const text = (item as { text?: unknown }).text;
+      return isValidRole(role) && typeof text === "string";
+    })
+    .map((item) => {
+      const safeItem = item as {
+        role: ChatMessage["role"];
+        text: string;
+        sources?: ChatSource[];
+      };
+      return {
+        role: safeItem.role,
+        text: safeItem.text,
+        sources: Array.isArray(safeItem.sources) ? safeItem.sources : undefined,
+      };
+    });
+}
 
 function renderLineWithLinks(line: string): ReactNode {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -95,14 +142,145 @@ export default function Chatbot({
   const [messages, setMessages] = useState<ChatMessage[]>(chatbotSeed);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [lastAppliedFilters, setLastAppliedFilters] = useState<AppliedFilters | null>(null);
-  const conversationId = useMemo(() => {
-    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const [conversationId, setConversationId] = useState<string>(() => createConversationId());
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Partial<StoredChatState>;
+      const restoredMessages = sanitizeStoredMessages(parsed.messages);
+
+      if (restoredMessages.length > 0) {
+        setMessages(restoredMessages.slice(-24));
+      }
+
+      if (parsed.conversationId && typeof parsed.conversationId === "string") {
+        setConversationId(parsed.conversationId);
+      }
+
+      setLastAppliedFilters((parsed.lastAppliedFilters as AppliedFilters | null) || null);
+    } catch (error) {
+      console.warn("Failed to restore chatbot history", error);
+    } finally {
+      setIsHydrated(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const controller = new AbortController();
+    const loadServerHistory = async () => {
+      try {
+        const response = await fetch(
+          `/api/chat/history?conversationId=${encodeURIComponent(conversationId)}`,
+          { method: "GET", signal: controller.signal }
+        );
+
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as ChatHistoryResponse;
+        const serverMessages = sanitizeStoredMessages(payload.messages);
+
+        if (serverMessages.length > 0) {
+          setMessages(serverMessages.slice(-24));
+        }
+
+        if (payload.conversationId && payload.conversationId !== conversationId) {
+          setConversationId(payload.conversationId);
+        }
+
+        if (payload.lastAppliedFilters) {
+          setLastAppliedFilters(payload.lastAppliedFilters);
+        }
+      } catch (error) {
+        if ((error as { name?: string })?.name !== "AbortError") {
+          console.warn("Failed to load server chat history", error);
+        }
+      }
+    };
+
+    void loadServerHistory();
+
+    return () => controller.abort();
+  }, [conversationId, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    try {
+      const payload: StoredChatState = {
+        conversationId,
+        messages: messages.slice(-24),
+        lastAppliedFilters,
+        updatedAt: Date.now(),
+      };
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.warn("Failed to persist chatbot history", error);
+    }
+  }, [conversationId, isHydrated, messages, lastAppliedFilters]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const persistServerHistory = async () => {
+      try {
+        await fetch("/api/chat/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId,
+            messages: messages.slice(-24),
+            lastAppliedFilters,
+          }),
+        });
+      } catch (error) {
+        console.warn("Failed to persist server chat history", error);
+      }
+    };
+
+    void persistServerHistory();
+  }, [conversationId, isHydrated, messages, lastAppliedFilters]);
+
+  const clearChat = async () => {
+    if (isLoading || isClearing) return;
+
+    setIsClearing(true);
+    const previousConversationId = conversationId;
+    const nextConversationId = createConversationId();
+
+    try {
+      await fetch(`/api/chat/history?conversationId=${encodeURIComponent(previousConversationId)}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.warn("Failed to clear server chat history", error);
+    } finally {
+      setMessages(chatbotSeed);
+      setLastAppliedFilters(null);
+      setInput("");
+      setConversationId(nextConversationId);
+
+      try {
+        window.localStorage.removeItem(CHAT_STORAGE_KEY);
+      } catch (error) {
+        console.warn("Failed to clear local chat history", error);
+      }
+
+      setIsClearing(false);
+    }
+  };
   
   const send = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isClearing) return;
     const userText = input.trim();
+    const nextHistory = [...messages, { role: "user" as const, text: userText }];
     setMessages((prev) => [...prev, { role: "user", text: userText }]);
     setInput("");
 
@@ -116,7 +294,7 @@ export default function Chatbot({
           selectedState,
           language,
           contextFilters: lastAppliedFilters,
-          history: messages.slice(-10).map((msg) => ({ role: msg.role, text: msg.text })),
+          history: nextHistory.slice(-10).map((msg) => ({ role: msg.role, text: msg.text })),
           conversationId,
         }),
       });
@@ -178,6 +356,24 @@ export default function Chatbot({
             <div style={{ fontWeight: 700, color: "#3d2a1c" }}>Assistant Shell</div>
             <div style={{ fontSize: "0.8rem", color: "#654c3a" }}>
               Ask about crafts, GI, materials, techniques, and state-wise recommendations.
+            </div>
+            <div style={{ marginTop: "8px" }}>
+              <button
+                onClick={clearChat}
+                disabled={isLoading || isClearing}
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  border: "1px solid #a45a38",
+                  background: "#fff3e8",
+                  color: "#5f351f",
+                  cursor: isLoading || isClearing ? "not-allowed" : "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {isClearing ? "Clearing..." : "Clear Chat"}
+              </button>
             </div>
           </div>
           
@@ -249,12 +445,12 @@ export default function Chatbot({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Type your question here..."
-              disabled={isLoading}
+              disabled={isLoading || isClearing}
               style={{ flex: 1, padding: "10px", border: "1px solid #c9b09a", borderRadius: "10px", background: "#fffdf9", color: "#3d2a1d" }}
             />
             <button 
               onClick={send}
-              disabled={isLoading}
+              disabled={isLoading || isClearing}
               style={{ padding: "10px 15px", border: "1px solid #935034", borderRadius: "10px", cursor: "pointer", background: "#9e4f2f", color: "#fff9f2", fontWeight: 700 }}
             >
               {isLoading ? "Sending..." : "Send"}
