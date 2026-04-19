@@ -10,7 +10,7 @@ A modern web application showcasing and exploring traditional Indian handicrafts
 - Interactive state-based filtering
 - Responsive design with Tailwind CSS
 - Modern UI components with Radix UI
-- AI-powered chatbot assistance
+- AI-powered chatbot assistance with deterministic filters + retrieval grounding
 
 ## Tech Stack
 
@@ -21,6 +21,7 @@ A modern web application showcasing and exploring traditional Indian handicrafts
 - **Animations**: Framer Motion
 - **Language**: TypeScript
 - **Linting**: ESLint
+- **NLP**: Hybrid retrieval (TF-IDF + embeddings via Xenova Transformers)
 
 ## Getting Started
 
