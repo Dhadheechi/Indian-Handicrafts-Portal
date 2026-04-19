@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Craft from '@/lib/models/Craft';
 import { generateEmbedding, calculateSimilarity, TFIDFSearch } from '@/lib/nlp';
+import { ensureCraftDataSeeded } from '@/lib/seed';
 
 // Global cache for the TF-IDF engine to avoid re-training on every search
 let cachedTFIDF: TFIDFSearch | null = null;
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
 
   try {
     await dbConnect();
+    await ensureCraftDataSeeded();
 
     // 1. Fetch crafts
     const allCrafts = await Craft.find({}).sort({ id: 1 }).lean();
