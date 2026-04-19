@@ -1,6 +1,6 @@
 import Craft from "@/lib/models/Craft";
 import dbConnect from "@/lib/mongoose";
-import { generateEmbedding } from "@/lib/nlp";
+import { generateEmbedding, generateSummaryFromHistory } from "@/lib/nlp";
 import { crafts } from "@/data/crafts";
 
 type SeedOptions = {
@@ -18,6 +18,10 @@ type SeedGlobalCache = typeof globalThis & {
 
 const globalSeedCache = globalThis as SeedGlobalCache;
 
+function normalizeForComparison(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 async function runSeed({ force = false }: SeedOptions = {}): Promise<SeedResult> {
   await dbConnect();
 
@@ -34,10 +38,22 @@ async function runSeed({ force = false }: SeedOptions = {}): Promise<SeedResult>
 
   const craftsWithEmbeddings = [];
   for (const craft of crafts) {
-    const semanticText = `${craft.name}. ${craft.category} made of ${craft.material} using ${craft.technique}. ${craft.summary}`;
+    const historyText = (craft.history || "").trim();
+    const existingSummary = (craft.summary || "").trim();
+    const shouldRegenerateSummary =
+      historyText.length > 0 &&
+      (!existingSummary || normalizeForComparison(existingSummary) === normalizeForComparison(historyText));
+
+    const summary = shouldRegenerateSummary
+      ? generateSummaryFromHistory(historyText)
+      : existingSummary;
+
+    const semanticText = `${craft.name}. ${craft.category} made of ${craft.material} using ${craft.technique}. ${summary}`;
     const embedding = await generateEmbedding(semanticText);
+
     craftsWithEmbeddings.push({
       ...craft,
+      summary,
       embedding,
     });
   }
